@@ -29,18 +29,25 @@ client.connect(err => {
     })
 
     app.get('/reviews', (req, res) => {
+        if (req.query.email) {
+            return reviewCollection.find({ email: req.query.email })
+                .toArray((err, docs) => res.send(docs[0]))
+        }
         reviewCollection.find({})
             .toArray((err, docs) => res.send(docs))
     })
 
     app.get('/orders', (req, res) => {
-        if (req.query.email) {
-            orderCollection.find({ email: req.query.email })
-                .toArray((err, docs) => res.send(docs))
-        } else {
-            orderCollection.find({})
-                .toArray((err, docs) => res.send(docs))
-        }
+        adminsCollection.find({ email: req.query.email })
+            .toArray((err, docs) => {
+                if (docs.length) {
+                    orderCollection.find({})
+                        .toArray((err, docs) => res.send(docs))
+                } else {
+                    orderCollection.find({ email: req.query.email })
+                        .toArray((err, docs) => res.send(docs))
+                }
+            })
     })
 
     app.get('/isAdmin', (req, res) => {
@@ -79,8 +86,31 @@ client.connect(err => {
         ).then(result => res.send(result.lastErrorObject.updatedExisting))
     })
 
+    app.patch('/update/:id', (req, res) => {
+        serviceCollection.updateOne(
+            { _id: ObjectId(req.params.id) },
+            {
+                $set: req.body
+            }
+        ).then(result => res.send(!!result.modifiedCount))
+    })
+
     app.delete('/delete/:id', (req, res) => {
         serviceCollection.deleteOne({ _id: ObjectId(req.params.id) })
+            .then(result => res.send(!!result.deletedCount))
+    })
+
+    app.patch('/updateReview/:id', (req, res) => {
+        reviewCollection.updateOne(
+            { _id: ObjectId(req.params.id) },
+            {
+                $set: req.body
+            }
+        ).then(result => res.send(!!result.modifiedCount))
+    })
+
+    app.delete('/deleteReview/:id', (req, res) => {
+        reviewCollection.deleteOne({ _id: ObjectId(req.params.id) })
             .then(result => res.send(!!result.deletedCount))
     })
 });
